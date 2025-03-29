@@ -178,53 +178,64 @@ internal class RenderProcess : IDisposable
 		};
 
 		// ===========================================
-		// 动态计算 runtime 路径
+		// 多种方式设置 DOTNET_ROOT
+		// 优先检查 XIVLauncherCN\runtime
 		// ===========================================
-		try
+		string? runtimePath = Path.Combine(
+			Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+			"XIVLauncherCN",
+			"runtime"
+		);
+
+		if (!Directory.Exists(runtimePath))
 		{
-			var currentDir = _pluginDir;
-			for (int i = 0; i < 4 && currentDir != null; i++)
-			{
-				currentDir = Directory.GetParent(currentDir)?.FullName;
-			}
+			Services.PluginLog.Debug("[Browsingway] XIVLauncherCN runtime not found, trying plugin directory...");
 
-			var runtimePath = currentDir != null
-				? Path.Combine(currentDir, "runtime")
-				: null;
+			// 回溯插件目录查找 runtime
+			try
+			{
+				var currentDir = _pluginDir;
+				for (int i = 0; i < 4 && currentDir != null; i++)
+				{
+					currentDir = Directory.GetParent(currentDir)?.FullName;
+				}
 
-			if (runtimePath != null && Directory.Exists(runtimePath))
-			{
-				process.StartInfo.EnvironmentVariables["DOTNET_ROOT"] = runtimePath;
-				Services.PluginLog.Info($"[Browsingway] Using local runtime: {runtimePath}");
+				runtimePath = currentDir != null
+					? Path.Combine(currentDir, "runtime")
+					: null;
 			}
-			else
+			catch (Exception ex)
 			{
-				process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
-				Services.PluginLog.Warning("[Browsingway] Local runtime not found, using system .NET");
+				Services.PluginLog.Error(ex, "[Browsingway] Failed to resolve plugin runtime path");
+				runtimePath = null;
 			}
 		}
-		catch (Exception ex)
+
+		// 设置或移除 DOTNET_ROOT
+		if (runtimePath != null && Directory.Exists(runtimePath))
 		{
-			Services.PluginLog.Error(ex, "[Browsingway] Failed to resolve runtime path");
+			process.StartInfo.EnvironmentVariables["DOTNET_ROOT"] = runtimePath;
+			Services.PluginLog.Info($"[Browsingway] Using runtime: {runtimePath}");
+		}
+		else
+		{
 			process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
+			Services.PluginLog.Warning("[Browsingway] No valid runtime found, falling back to system .NET");
 		}
-		// ===========================================
 
-		// 设置输出/错误重定向
+		// ===========================================
+		// 输出/错误重定向
+		// ===========================================
 		process.OutputDataReceived += (_, args) =>
 		{
 			if (!string.IsNullOrWhiteSpace(args.Data))
-			{
 				Services.PluginLog.Info($"[Render] {args.Data}");
-			}
 		};
 
 		process.ErrorDataReceived += (_, args) =>
 		{
 			if (!string.IsNullOrWhiteSpace(args.Data))
-			{
 				Services.PluginLog.Error($"[Render] {args.Data}");
-			}
 		};
 
 		return process;
