@@ -232,7 +232,7 @@ internal class Settings : IDisposable
 		                               | ImGuiWindowFlags.NoScrollbar
 		                               | ImGuiWindowFlags.NoScrollWithMouse
 		                               | ImGuiWindowFlags.NoCollapse;
-		ImGui.Begin("Browsingway Settings", ref _open, windowFlags);
+		ImGui.Begin("Browsingway 设置", ref _open, windowFlags);
 
 		RenderPaneSelector();
 
@@ -266,7 +266,7 @@ internal class Settings : IDisposable
 		ImGui.BeginChild("panes", new Vector2(selectorWidth, -ImGui.GetFrameHeightWithSpacing()), true);
 
 		// General settings
-		if (ImGui.Selectable("General", _selectedOverlay == null))
+		if (ImGui.Selectable("通用设置", _selectedOverlay == null))
 		{
 			_selectedOverlay = null;
 		}
@@ -274,7 +274,7 @@ internal class Settings : IDisposable
 		// Overlay selector list
 		ImGui.Dummy(new Vector2(0, 5));
 		ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-		ImGui.Text("- Overlays -");
+		ImGui.Text("- 叠加层 -");
 		ImGui.PopStyleVar();
 		foreach (InlayConfiguration? overlayConfig in Config?.Inlays!)
 		{
@@ -323,31 +323,32 @@ internal class Settings : IDisposable
 	{
 		bool dirty = false;
 
-		ImGui.Text("Select an overlay on the left to edit its settings.");
+		ImGui.Text("请在左侧选择要编辑设置的叠加层");
 
-		if (ImGui.CollapsingHeader("Command Help", ImGuiTreeNodeFlags.DefaultOpen))
+		if (ImGui.CollapsingHeader("指令帮助", ImGuiTreeNodeFlags.DefaultOpen))
 		{
 			// TODO: If this ever gets more than a few options, should probably colocate help with the defintion. Attributes?
 			ImGui.Text("/bw config");
-			ImGui.Text("Open this configuration window.");
+			ImGui.Text("打开此配置窗口");
 			ImGui.Dummy(new Vector2(0, 5));
-			ImGui.Text("/bw overlay [overlayCommandName] [setting] [value]");
+
+			ImGui.Text("/bw overlay [叠加层指令名称] [设置项] [值]");
 			ImGui.TextWrapped(
-				"Change a setting for an overlay.\n" +
-				"\toverlayCommandName: The overlay to edit. Use the 'Command Name' shown in its config.\n" +
-				"\tsetting: Value to change. Accepted settings are:\n" +
-				"\t\turl: string\n" +
-				"\t\tdisabled: boolean\n" +
-				"\t\tmuted: boolean\n" +
-				"\t\tact: boolean\n" +
-				"\t\tlocked: boolean\n" +
-				"\t\thidden: boolean\n" +
-				"\t\ttypethrough: boolean\n" +
-				"\t\tclickthrough: boolean\n" +
-				"\t\tfullscreen: boolean\n" +
+				"修改叠加层的设置项\n" +
+				"\t叠加层指令名称: 要编辑的叠加层。使用其配置中显示的'指令名称'\n" +
+				"\t设置项: 要修改的值。可接受的设置项有:\n" +
+				"\t\turl: 字符串\n" +
+				"\t\tdisabled: 布尔值\n" +
+				"\t\tmuted: 布尔值\n" +
+				"\t\tact: 布尔值\n" +
+				"\t\tlocked: 布尔值\n" +
+				"\t\thidden: 布尔值\n" +
+				"\t\ttypethrough: 布尔值\n" +
+				"\t\tclickthrough: 布尔值\n" +
+				"\t\tfullscreen: 布尔值\n" +
 				"\t\treload: -\n" +
-				"\tvalue: Value to set for the setting. Accepted values are:\n" +
-				"\t\tstring: any string value\n\t\tboolean: on, off, toggle");
+				"\t值: 为设置项指定的值。可接受的值有:\n" +
+				"\t\t字符串: 任意字符串值\n\t\t布尔值: on, off, toggle");
 		}
 
 		return dirty;
@@ -359,17 +360,17 @@ internal class Settings : IDisposable
 
 		ImGui.PushID(overlayConfig.Guid.ToString());
 
-		dirty |= ImGui.InputText("Name", ref overlayConfig.Name, 100);
+		dirty |= ImGui.InputText("名称", ref overlayConfig.Name, 100);
 
 		ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
 		string? commandName = GetOverlayCommandName(overlayConfig);
-		ImGui.InputText("Command Name", ref commandName, 100);
+		ImGui.InputText("指令名称", ref commandName, 100);
 		ImGui.PopStyleVar();
 
 		dirty |= ImGui.InputText("URL", ref overlayConfig.Url, 1000);
 		if (ImGui.IsItemDeactivatedAfterEdit()) { NavigateOverlay(overlayConfig); }
 
-		if (ImGui.InputFloat("Zoom", ref overlayConfig.Zoom, 1f, 10f, "%.0f%%"))
+		if (ImGui.InputFloat("缩放", ref overlayConfig.Zoom, 1f, 10f, "%.0f%%"))
 		{
 			// clamp to allowed range 
 			if (overlayConfig.Zoom < 10f)
@@ -387,7 +388,7 @@ internal class Settings : IDisposable
 			UpdateZoomOverlay(overlayConfig);
 		}
 
-		if (ImGui.InputFloat("Opacity", ref overlayConfig.Opacity, 1f, 10f, "%.0f%%"))
+		if (ImGui.InputFloat("透明度", ref overlayConfig.Opacity, 1f, 10f, "%.0f%%"))
 		{
 			// clamp to allowed range 
 			if (overlayConfig.Opacity < 10f)
@@ -402,7 +403,7 @@ internal class Settings : IDisposable
 			dirty = true;
 		}
 
-		if (ImGui.InputInt("Framerate", ref overlayConfig.Framerate, 1, 10))
+		if (ImGui.InputInt("帧率", ref overlayConfig.Framerate, 1, 10))
 		{
 			// clamp to allowed range 
 			if (overlayConfig.Framerate < 1)
@@ -425,7 +426,7 @@ internal class Settings : IDisposable
 		ImGui.SetNextItemWidth(100);
 		ImGui.Columns(2, "boolInlayOptions", false);
 
-		if (ImGui.Checkbox("Disabled", ref overlayConfig.Disabled))
+		if (ImGui.Checkbox("禁用", ref overlayConfig.Disabled))
 		{
 			if (overlayConfig.Disabled)
 				OverlayRemoved?.Invoke(this, overlayConfig);
@@ -434,23 +435,23 @@ internal class Settings : IDisposable
 			dirty = true;
 		}
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Disables the overlay. Contrary to just hiding it this setting will stop it from ever being created."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("完全禁用叠加层。与隐藏不同，此设置会阻止叠加层被创建。"); }
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();
 
 
-		if (ImGui.Checkbox("Muted", ref overlayConfig.Muted))
+		if (ImGui.Checkbox("静音", ref overlayConfig.Muted))
 		{
 			UpdateMuteOverlay(overlayConfig);
 			dirty = true;
 		}
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables or disables audio playback."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("启用或禁用音频播放。"); }
 
 		ImGui.NextColumn();
 
-		if (ImGui.Checkbox("ACT/IINACT optimizations", ref overlayConfig.ActOptimizations))
+		if (ImGui.Checkbox("ACT/IINACT优化", ref overlayConfig.ActOptimizations))
 		{
 			if (!overlayConfig.Disabled)
 			{
@@ -470,7 +471,7 @@ internal class Settings : IDisposable
 			dirty = true;
 		}
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables ACT/IINACT specific optimizations. This will automatically disable the overlay if ACT/IINACT is not running.\n\nNOTE: This does NOT disable the overlay if the websocket is not reporting data."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("启用ACT/IINACT特定优化。如果ACT/IINACT未运行，将自动禁用叠加层。\n\n注意：这不会在websocket未报告数据时禁用叠加层。"); }
 
 		ImGui.NextColumn();
 
@@ -478,56 +479,56 @@ internal class Settings : IDisposable
 
 		bool true_ = true;
 		bool implicit_ = overlayConfig.ClickThrough || overlayConfig.Fullscreen;
-		dirty |= ImGui.Checkbox("Locked", ref implicit_ ? ref true_ : ref overlayConfig.Locked);
+		dirty |= ImGui.Checkbox("锁定", ref implicit_ ? ref true_ : ref overlayConfig.Locked);
 		if (overlayConfig.ClickThrough) { ImGui.PopStyleVar(); }
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the overlay from being resized or moved. This is implicitly set by Click Through and Fullscreen."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("防止叠加层被调整大小或移动。点击穿透和全屏模式会隐式启用此选项。"); }
 
 		ImGui.NextColumn();
 
-		dirty |= ImGui.Checkbox("Hidden", ref overlayConfig.Hidden);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide the overlay. This does not stop the overlay from executing, only from being displayed."); }
+		dirty |= ImGui.Checkbox("隐藏", ref overlayConfig.Hidden);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("隐藏叠加层。这不会停止叠加层执行，仅不显示。"); }
 
 		ImGui.NextColumn();
 
 		if (overlayConfig.ClickThrough) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
-		dirty |= ImGui.Checkbox("Type Through", ref overlayConfig.ClickThrough ? ref true_ : ref overlayConfig.TypeThrough);
+		dirty |= ImGui.Checkbox("键盘穿透", ref overlayConfig.ClickThrough ? ref true_ : ref overlayConfig.TypeThrough);
 		if (overlayConfig.ClickThrough || overlayConfig.Fullscreen) { ImGui.PopStyleVar(); }
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the overlay from intercepting any keyboard events. Implicitly set by Click Through."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("防止叠加层拦截任何键盘事件。点击穿透会隐式启用此选项。"); }
 
 		ImGui.NextColumn();
 
-		dirty |= ImGui.Checkbox("Click Through", ref overlayConfig.ClickThrough);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the overlay from intercepting any mouse events. Implicitly sets Locked and Type Through."); }
+		dirty |= ImGui.Checkbox("点击穿透", ref overlayConfig.ClickThrough);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("防止叠加层拦截任何鼠标事件。会隐式启用锁定和键盘穿透。"); }
 
 		ImGui.NextColumn();
 
-		dirty |= ImGui.Checkbox("Hide out of combat", ref overlayConfig.HideOutOfCombat);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide this overlay when out-of-combat."); }
+		dirty |= ImGui.Checkbox("非战斗时隐藏", ref overlayConfig.HideOutOfCombat);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("当处于非战斗状态时隐藏此叠加层。"); }
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();
 
 		if (!overlayConfig.HideOutOfCombat) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
-		dirty |= ImGui.InputInt("Hide Delay", ref overlayConfig.HideDelay);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Delay to hide overlay when out-of-combat in seconds."); }
+		dirty |= ImGui.InputInt("隐藏延迟", ref overlayConfig.HideDelay);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("非战斗状态下隐藏叠加层的延迟时间(秒)。"); }
 
 		if (!overlayConfig.HideOutOfCombat) { ImGui.PopStyleVar(); }
 
 		ImGui.Columns(1);
 
 		ImGui.NewLine();
-		if (ImGui.CollapsingHeader("Experimental / Unsupported"))
+		if (ImGui.CollapsingHeader("实验性/未支持功能"))
 		{
 			ImGui.NewLine();
-			dirty |= ImGui.Checkbox("Fullscreen", ref overlayConfig.Fullscreen);
+			dirty |= ImGui.Checkbox("全屏模式", ref overlayConfig.Fullscreen);
 			ImGui.NewLine();
-			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Automatically makes this overlay cover the entire screen when enabled."); }
+			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("启用时自动使此叠加层叠加整个屏幕。"); }
 
-			ImGui.Text("Custom CSS code:");
+			ImGui.Text("自定义CSS代码:");
 			if (ImGui.InputTextMultiline("Custom CSS code", ref overlayConfig.CustomCss, 1000000,
 				    new Vector2(-1, ImGui.GetTextLineHeight() * 10)))
 			{
@@ -538,10 +539,10 @@ internal class Settings : IDisposable
 		}
 
 		ImGui.NewLine();
-		if (ImGui.Button("Reload")) { ReloadOverlay(overlayConfig); }
+		if (ImGui.Button("重新加载")) { ReloadOverlay(overlayConfig); }
 
 		ImGui.SameLine();
-		if (ImGui.Button("Open Dev Tools")) { DebugOverlay(overlayConfig); }
+		if (ImGui.Button("开发者工具")) { DebugOverlay(overlayConfig); }
 
 		ImGui.PopID();
 
