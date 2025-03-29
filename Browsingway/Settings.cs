@@ -509,6 +509,8 @@ internal class Settings : IDisposable
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("当处于非战斗状态时隐藏此叠加层。"); }
 
 		ImGui.NextColumn();
+		dirty |= ImGui.Checkbox("鼠标悬停时显示", ref overlayConfig.ShowOnHover);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("当叠加层隐藏时，鼠标悬停在其区域上会临时显示。"); }
 		ImGui.NextColumn();
 
 		if (!overlayConfig.HideOutOfCombat) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }

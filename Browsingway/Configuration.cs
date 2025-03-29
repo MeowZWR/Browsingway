@@ -30,4 +30,5 @@ internal class InlayConfiguration
 	public bool Fullscreen;
 	public bool HideOutOfCombat;
 	public int HideDelay = 0;
+	public bool ShowOnHover;
 }

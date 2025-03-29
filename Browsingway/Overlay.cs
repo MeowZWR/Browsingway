@@ -1,4 +1,4 @@
-using Browsingway.Common.Ipc;
+﻿using Browsingway.Common.Ipc;
 using Dalamud.Game.ClientState.Objects.Enums;
 using ImGuiNET;
 using System.Numerics;
@@ -105,56 +105,101 @@ internal class Overlay : IDisposable
 		return (true, 0);
 	}
 
+	private bool ShouldShowOnHover()
+	{
+		return _overlayConfig.ShowOnHover &&
+			   (_overlayConfig.Hidden || HiddenByCombatFlags()) &&
+			   !_overlayConfig.Disabled;
+	}
+
+	private bool IsHoveringWindow()
+	{
+		Vector2 windowPos = ImGui.GetWindowPos();
+		Vector2 windowSize = ImGui.GetWindowSize();
+		Vector2 mousePos = ImGui.GetIO().MousePos;
+
+		return mousePos.X >= windowPos.X &&
+			   mousePos.Y >= windowPos.Y &&
+			   mousePos.X <= windowPos.X + windowSize.X &&
+			   mousePos.Y <= windowPos.Y + windowSize.Y;
+	}
+
 	public void Render()
 	{
-		if (_overlayConfig.Hidden || _overlayConfig.Disabled || HiddenByCombatFlags())
+		if (_overlayConfig.Disabled)
 		{
 			_mouseInWindow = false;
 			return;
 		}
 
-		ImGui.SetNextWindowSize(new Vector2(640, 480), ImGuiCond.FirstUseEver);
-		ImGui.Begin($"{_overlayConfig.Name}###{_overlayConfig.Guid}", GetWindowFlags());
+		bool shouldShow = !_overlayConfig.Hidden && !HiddenByCombatFlags();
+		bool isHovering = false;
 
-		if (_overlayConfig.Fullscreen)
+		if (shouldShow || ShouldShowOnHover())
 		{
-			var screen = ImGui.GetMainViewport();
+			ImGui.SetNextWindowSize(new Vector2(640, 480), ImGuiCond.FirstUseEver);
 
-			// ImGui always leaves a 1px transparent border around the window, so we need to account for that.
-			var fsPos = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
-			var fsSize = new Vector2(screen.Size.X + 2 - fsPos.X, screen.Size.Y + 2 - fsPos.Y);
-
-			if (ImGui.GetWindowPos() != fsPos)
+			ImGuiWindowFlags flags = GetWindowFlags();
+			if (ShouldShowOnHover())
 			{
-				ImGui.SetWindowPos(fsPos, ImGuiCond.Always);
+				flags |= ImGuiWindowFlags.NoBackground;
 			}
 
-			if (_size.X != fsSize.X || _size.Y != fsSize.Y)
+			ImGui.Begin($"{_overlayConfig.Name}###{_overlayConfig.Guid}", flags);
+
+			isHovering = IsHoveringWindow();
+
+			if (ShouldShowOnHover() && !isHovering)
 			{
-				ImGui.SetWindowSize(fsSize, ImGuiCond.Always);
+				ImGui.End();
+				_mouseInWindow = false;
+				return;
 			}
+
+			if (_overlayConfig.Fullscreen)
+			{
+				var screen = ImGui.GetMainViewport();
+				var fsPos = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
+				var fsSize = new Vector2(screen.Size.X + 2 - fsPos.X, screen.Size.Y + 2 - fsPos.Y);
+
+				if (ImGui.GetWindowPos() != fsPos)
+				{
+					ImGui.SetWindowPos(fsPos, ImGuiCond.Always);
+				}
+
+				if (_size.X != fsSize.X || _size.Y != fsSize.Y)
+				{
+					ImGui.SetWindowSize(fsSize, ImGuiCond.Always);
+				}
+			}
+
+			HandleWindowSize();
+
+			if (_textureHandler != null)
+			{
+				if (shouldShow || isHovering)
+				{
+					HandleMouseEvent();
+				}
+
+				ImGui.PushStyleVar(ImGuiStyleVar.Alpha, _overlayConfig.Opacity / 100f);
+				_textureHandler.Render();
+				ImGui.PopStyleVar();
+			}
+			else if (_textureRenderException != null)
+			{
+				ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
+				ImGui.Text("An error occured while building the browser overlay texture:");
+				ImGui.Text(_textureRenderException.ToString());
+				ImGui.PopStyleColor();
+			}
+
+			ImGui.End();
 		}
-
-		HandleWindowSize();
-
-		// TODO: Browsingway.Renderer can take some time to spin up properly, should add a loading state.
-		if (_textureHandler != null)
+		else
 		{
-			HandleMouseEvent();
-
-			ImGui.PushStyleVar(ImGuiStyleVar.Alpha, _overlayConfig.Opacity / 100f);
-			_textureHandler.Render();
-			ImGui.PopStyleVar();
+			_mouseInWindow = false;
 		}
-		else if (_textureRenderException != null)
-		{
-			ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
-			ImGui.Text("An error occured while building the browser overlay texture:");
-			ImGui.Text(_textureRenderException.ToString());
-			ImGui.PopStyleColor();
-		}
-
-		ImGui.End();
 	}
 
 	private ImGuiWindowFlags GetWindowFlags()
