@@ -1,4 +1,4 @@
-using Browsingway.Common;
+﻿using Browsingway.Common;
 using Browsingway.Common.Ipc;
 using Dalamud.Plugin.Services;
 using System.Diagnostics;
@@ -176,13 +176,56 @@ internal class RenderProcess : IDisposable
 			RedirectStandardOutput = true,
 			RedirectStandardError = true
 		};
-		string runtimePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", "runtime");
-		// ensure Dalamud's runtime is used even if there's a system runtime, to avoid runtime version mismatches
-		process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
-		process.StartInfo.EnvironmentVariables.Add("DOTNET_ROOT", runtimePath);
 
-		process.OutputDataReceived += (_, args) => Services.PluginLog.Info($"[Render]: {args.Data}");
-		process.ErrorDataReceived += (_, args) => Services.PluginLog.Error($"[Render]: {args.Data}");
+		// ===========================================
+		// 动态计算 runtime 路径
+		// ===========================================
+		try
+		{
+			var currentDir = _pluginDir;
+			for (int i = 0; i < 4 && currentDir != null; i++)
+			{
+				currentDir = Directory.GetParent(currentDir)?.FullName;
+			}
+
+			var runtimePath = currentDir != null
+				? Path.Combine(currentDir, "runtime")
+				: null;
+
+			if (runtimePath != null && Directory.Exists(runtimePath))
+			{
+				process.StartInfo.EnvironmentVariables["DOTNET_ROOT"] = runtimePath;
+				Services.PluginLog.Info($"[Browsingway] Using local runtime: {runtimePath}");
+			}
+			else
+			{
+				process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
+				Services.PluginLog.Warning("[Browsingway] Local runtime not found, using system .NET");
+			}
+		}
+		catch (Exception ex)
+		{
+			Services.PluginLog.Error(ex, "[Browsingway] Failed to resolve runtime path");
+			process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
+		}
+		// ===========================================
+
+		// 设置输出/错误重定向
+		process.OutputDataReceived += (_, args) =>
+		{
+			if (!string.IsNullOrWhiteSpace(args.Data))
+			{
+				Services.PluginLog.Info($"[Render] {args.Data}");
+			}
+		};
+
+		process.ErrorDataReceived += (_, args) =>
+		{
+			if (!string.IsNullOrWhiteSpace(args.Data))
+			{
+				Services.PluginLog.Error($"[Render] {args.Data}");
+			}
+		};
 
 		return process;
 	}
