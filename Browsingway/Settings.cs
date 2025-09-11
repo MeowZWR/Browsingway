@@ -1,5 +1,5 @@
 ﻿using Dalamud.Interface;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
@@ -511,6 +511,11 @@ internal class Settings : IDisposable
 		ImGui.NextColumn();
 		dirty |= ImGui.Checkbox("鼠标悬停时显示", ref overlayConfig.ShowOnHover);
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("当叠加层隐藏时，鼠标悬停在其区域上会临时显示。"); }
+
+		ImGui.NextColumn();
+		dirty |= ImGui.Checkbox("在PvP中隐藏", ref overlayConfig.HideInPvP);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("当处于PvP区域时隐藏此叠加层。"); }
+
 		ImGui.NextColumn();
 
 		if (!overlayConfig.HideOutOfCombat) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }

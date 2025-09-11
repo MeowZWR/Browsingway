@@ -4,7 +4,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
@@ -83,7 +83,7 @@ public class Plugin : IDalamudPlugin
 		// race condition overlays receiving a null reference.
 		int pid = Process.GetCurrentProcess().Id;
 		_renderProcess = new RenderProcess(pid, _pluginDir, _pluginConfigDir, _dependencyManager, Services.PluginLog);
-		_renderProcess.Rpc.RendererReady += msg =>
+		_renderProcess.Rpc!.RendererReady += msg =>
 		{
 			if (!msg.HasDxSharedTexturesSupport)
 			{
@@ -140,7 +140,8 @@ public class Plugin : IDalamudPlugin
 		}
 
 		// Hook up the main BW command
-		Services.CommandManager.AddHandler(_command, new CommandInfo(HandleCommand) { HelpMessage = "Control Browsingway from the chat line! Type '/bw config' or open the settings for more info.", ShowInHelp = true });
+		Services.CommandManager.AddHandler(_command,
+			new CommandInfo(HandleCommand) {HelpMessage = "Control Browsingway from the chat line! Type '/bw config' or open the settings for more info.", ShowInHelp = true});
 	}
 
 	private (bool, long) OnWndProc(WindowsMessage msg, ulong wParam, long lParam)
@@ -163,7 +164,7 @@ public class Plugin : IDalamudPlugin
 			return;
 		}
 
-		Overlay overlay = new(_renderProcess, overlayConfig);
+		Overlay overlay = new(_renderProcess, overlayConfig, _pluginDir);
 		_overlays.TryAdd(overlayConfig.Guid, overlay);
 	}
 

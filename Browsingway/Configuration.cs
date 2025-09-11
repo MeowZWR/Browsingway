@@ -29,6 +29,7 @@ internal class InlayConfiguration
 	public bool ActOptimizations;
 	public bool Fullscreen;
 	public bool HideOutOfCombat;
+	public bool HideInPvP;
 	public int HideDelay = 0;
 	public bool ShowOnHover;
 }
