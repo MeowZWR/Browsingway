@@ -103,14 +103,14 @@ public class DependencyManager : IDisposable
 		}
 
 		_viewMode = ViewMode.Installing;
-		Services.PluginLog.Info("Installing dependencies...");
+		Services.PluginLog.Info("正在安装依赖项...");
 
 		IEnumerable<Task> installTasks = _missingDependencies.Select(InstallDependency);
 		Task.WhenAll(installTasks).ContinueWith(task =>
 		{
 			bool failed = _installProgress.Any(pair => pair.Value == _depFailed);
 			_viewMode = failed ? ViewMode.Failed : ViewMode.Complete;
-			Services.PluginLog.Info($"Dependency install {_viewMode}.");
+			Services.PluginLog.Info($"依赖项安装结果：{_viewMode}。");
 
 			try { Directory.Delete(Path.Combine(_dependencyDir, _downloadDir), true); }
 			catch { }
@@ -119,7 +119,7 @@ public class DependencyManager : IDisposable
 
 	private async Task InstallDependency(Dependency dependency)
 	{
-		Services.PluginLog.Info($"Downloading {dependency.Directory} {dependency.Version}");
+		Services.PluginLog.Info($"正在下载 {dependency.Directory} {dependency.Version}");
 
 		// Ensure the downloads dir exists
 		string downloadDir = Path.Combine(_dependencyDir, _downloadDir);
@@ -161,7 +161,7 @@ public class DependencyManager : IDisposable
 		}
 		catch
 		{
-			Services.PluginLog.Error($"Failed to calculate checksum for {filePath}");
+			Services.PluginLog.Error($"计算校验和失败：{filePath}");
 			downloadedChecksum = "FAILED";
 		}
 
@@ -169,7 +169,7 @@ public class DependencyManager : IDisposable
 		if (downloadedChecksum != dependency.Checksum)
 		{
 			Services.PluginLog.Error(
-				$"Mismatched checksum for {filePath}: Got {downloadedChecksum} but expected {dependency.Checksum}");
+				$"校验和不匹配：{filePath}，实际为 {downloadedChecksum}，期望为 {dependency.Checksum}");
 			_installProgress.AddOrUpdate(dependency.Directory, _depFailed, (key, oldValue) => _depFailed);
 			File.Delete(filePath);
 			return;
@@ -191,7 +191,7 @@ public class DependencyManager : IDisposable
 	public string GetDependencyPathFor(string dependencyDir)
 	{
 		Dependency? dependency = _dependencies.First(dependency => dependency.Directory == dependencyDir);
-		if (dependency == null) { throw new Exception($"Unknown dependency {dependencyDir}"); }
+		if (dependency == null) { throw new Exception($"未知依赖项 {dependencyDir}"); }
 
 		return GetDependencyPath(dependency);
 	}
@@ -210,7 +210,7 @@ public class DependencyManager : IDisposable
 
 		ImGui.SetNextWindowSize(new Vector2(1300, 350), ImGuiCond.Always);
 		ImGuiWindowFlags windowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize;
-		ImGui.Begin("Browsingway dependencies", windowFlags);
+		ImGui.Begin("Browsingway 依赖项", windowFlags);
 		if (_texIcon is not null)
 			ImGui.Image(_texIcon.GetWrapOrEmpty().Handle, new Vector2(256, 256));
 
@@ -218,10 +218,10 @@ public class DependencyManager : IDisposable
 
 		string version = _missingDependencies?.First()?.Version ?? "???";
 		string checksum = _missingDependencies?.First()?.Checksum ?? "???";
-		ImGui.Text("Browsingway requires additional dependencies to function.\n" +
-		           "These are not shipped with the plugin due to their size.\n\n" +
-		           "The files are hosted on GitHub and are verified with SHA256 checksums:\n" +
-		           "https://github.com/Styr1x/Browsingway/releases/tag/cef-binaries\n\n" +
+		ImGui.Text("Browsingway 需要额外的依赖项才能正常运行。\n" +
+		           "由于体积较大，这些文件未随插件一同分发。\n\n" +
+		           "文件托管在 GitHub，并通过 SHA256 校验：\n" +
+		           "https://meowrs.com/https://github.com/Styr1x/Browsingway/releases/tag/cef-binaries\n\n" +
 		           "CefSharp: " + version + "\n" +
 		           "SHA256: " + checksum
 		);
@@ -251,32 +251,32 @@ public class DependencyManager : IDisposable
 		if (_missingDependencies == null) { return; }
 
 		ImGui.Separator();
-		if (ImGui.Button("Install missing dependencies")) { InstallDependencies(); }
+		if (ImGui.Button("安装缺失依赖项")) { InstallDependencies(); }
 	}
 
 	private void RenderInstalling()
 	{
-		ImGui.Text("Installing dependencies: ");
+		ImGui.Text("正在安装依赖项: ");
 		ImGui.SameLine();
 		RenderDownloadProgress();
 	}
 
 	private void RenderComplete()
 	{
-		ImGui.Text("Installing dependencies: ");
+		ImGui.Text("正在安装依赖项: ");
 		ImGui.SameLine();
 		RenderDownloadProgress();
 		ImGui.SameLine();
-		if (ImGui.Button("Close", new Vector2(100, 0))) { CheckDependencies(); }
+		if (ImGui.Button("关闭", new Vector2(100, 0))) { CheckDependencies(); }
 	}
 
 	private void RenderFailed()
 	{
-		ImGui.Text("Installing dependencies: ");
+		ImGui.Text("正在安装依赖项: ");
 		ImGui.SameLine();
 		RenderDownloadProgress();
 		ImGui.SameLine();
-		if (ImGui.Button("Retry", new Vector2(100, 0))) { CheckDependencies(); }
+		if (ImGui.Button("重试", new Vector2(100, 0))) { CheckDependencies(); }
 	}
 
 	private void RenderDownloadProgress()
@@ -288,19 +288,19 @@ public class DependencyManager : IDisposable
 			if (progress.Value == _depExtracting)
 			{
 				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, _colorProgress);
-				ImGui.ProgressBar(1, progressSize, "Extracting");
+				ImGui.ProgressBar(1, progressSize, "正在解压");
 				ImGui.PopStyleColor();
 			}
 			else if (progress.Value == _depComplete)
 			{
 				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, _colorDone);
-				ImGui.ProgressBar(1, progressSize, "Complete");
+				ImGui.ProgressBar(1, progressSize, "完成");
 				ImGui.PopStyleColor();
 			}
 			else if (progress.Value == _depFailed)
 			{
 				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, _colorError);
-				ImGui.ProgressBar(1, progressSize, "Error");
+				ImGui.ProgressBar(1, progressSize, "错误");
 				ImGui.PopStyleColor();
 			}
 			else
