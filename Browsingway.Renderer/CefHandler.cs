@@ -20,9 +20,6 @@ internal static class CefHandler
 		};
 		RootCachePath = settings.RootCachePath;
 		settings.CefCommandLineArgs["autoplay-policy"] = "no-user-gesture-required";
-		// 将 Chromium 日志级别收敛到 FATAL，避免 ERR 等级 GCM 连接失败噪声输出
-		settings.CefCommandLineArgs["log-level"] = "3";
-		settings.CefCommandLineArgs["disable-logging"] = "1";
 		if (Environment.IsPrivilegedProcess)
 		{
 			Console.Error.WriteLine(
