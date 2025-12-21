@@ -139,14 +139,21 @@ internal class Overlay : IDisposable
 		}
 
 		bool shouldShow = !_overlayConfig.Hidden && !HiddenByCombatFlags() && !(_overlayConfig.HideInPvP && Services.ClientState.IsPvP);
+		bool allowHover = ShouldShowOnHover();
 		bool isHovering;
 
-		if (shouldShow || ShouldShowOnHover())
+		if (!shouldShow && !allowHover)
+		{
+			_mouseInWindow = false;
+			return;
+		}
+
+		if (shouldShow || allowHover)
 		{
 			ImGui.SetNextWindowSize(new Vector2(640, 480), ImGuiCond.FirstUseEver);
 
 			ImGuiWindowFlags flags = GetWindowFlags();
-			if (ShouldShowOnHover())
+			if (allowHover)
 			{
 				flags |= ImGuiWindowFlags.NoBackground;
 			}
@@ -155,7 +162,7 @@ internal class Overlay : IDisposable
 
 			isHovering = IsHoveringWindow();
 
-			if (ShouldShowOnHover() && !isHovering)
+			if (allowHover && !isHovering)
 			{
 				ImGui.End();
 				_mouseInWindow = false;
@@ -180,6 +187,7 @@ internal class Overlay : IDisposable
 			}
 
 			HandleWindowSize();
+			RequestTextureIfMissing(shouldShow || isHovering);
 
 			if (_textureHandler != null && !_hasRenderError)
 			{
@@ -203,44 +211,20 @@ internal class Overlay : IDisposable
 					ImGui.Image(_texErrorIcon.GetWrapOrEmpty().Handle, new Vector2(size, size));
 
 					ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
-					if (_textureRenderException is not null)
+					if (_textureRenderException is not null || _hasRenderError)
 					{
 						ImGuiHelpers.CenteredText("构建浏览器叠加层纹理时发生错误：");
-						ImGuiHelpers.CenteredText(_textureRenderException.ToString());
+						if (_textureRenderException is not null) { ImGuiHelpers.CenteredText(_textureRenderException.ToString()); }
 					}
 					else
 					{
-						ImGuiHelpers.CenteredText("构建浏览器叠加层纹理时发生错误。请检查日志获取更多信息。");
+						ImGuiHelpers.CenteredText("正在初始化叠加层纹理...");
 					}
 					ImGui.PopStyleColor();
 				}
 			}
 
 			ImGui.End();
-		}
-		else
-		{
-			if (_texErrorIcon is not null)
-			{
-				float lineHeight = ImGui.GetTextLineHeight();
-				float size = float.Min(_size.X - lineHeight * 3, _size.Y - lineHeight * 3);
-				ImGui.NewLine();
-				ImGuiHelpers.CenterCursorFor(size);
-				ImGui.Image(_texErrorIcon.GetWrapOrEmpty().Handle, new Vector2(size, size));
-
-				ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
-				if (_textureRenderException is not null)
-				{
-					ImGuiHelpers.CenteredText("构建浏览器叠加层纹理时发生错误：");
-					ImGuiHelpers.CenteredText(_textureRenderException.ToString());
-				}
-				else
-				{
-					ImGuiHelpers.CenteredText("构建浏览器叠加层纹理时发生错误。请检查日志获取更多信息。");
-				}
-
-				ImGui.PopStyleColor();
-			}
 		}
 	}
 
@@ -287,9 +271,27 @@ internal class Overlay : IDisposable
 		{
 			_textureHandler = new SharedTextureHandler(handle);
 		}
-		catch (Exception e) { _textureRenderException = e; }
+		catch (Exception e)
+		{
+			_textureRenderException = e;
+			_hasRenderError = true;
+			_size = Vector2.Zero; // 下次重绘时重新请求纹理
+		}
 
 		if (oldTextureHandler != null) { oldTextureHandler.Dispose(); }
+	}
+
+	private void RequestTextureIfMissing(bool shouldDisplay)
+	{
+		if (!shouldDisplay || _textureHandler != null || _resizing || _size == Vector2.Zero)
+		{
+			return;
+		}
+
+		_resizing = true;
+		_textureRenderException = null;
+		_hasRenderError = false;
+		_ = _renderProcess.Rpc?.ResizeOverlay(RenderGuid, (int)_size.X, (int)_size.Y);
 	}
 
 	private void HandleMouseEvent()
